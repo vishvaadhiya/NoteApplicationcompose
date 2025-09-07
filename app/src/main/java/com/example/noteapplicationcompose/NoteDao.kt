@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes ORDER BY id DESC")
+    @Query("SELECT * FROM notes ORDER BY isPinned DESC, id DESC")
     fun getAllNotes(): Flow<List<NoteEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -14,4 +14,9 @@ interface NoteDao {
 
     @Delete
     suspend fun delete(note: NoteEntity)
+
+    @Query("SELECT * FROM notes ORDER BY createAt DESC")
+    fun getAllNotesByDate(): Flow<List<NoteEntity>>
+
+
 }

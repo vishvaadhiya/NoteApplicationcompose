@@ -8,5 +8,8 @@ data class NoteEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
     val description: String,
-    val colorHex: Long = 0xFFE0F7FAL
+    val colorHex: Long,
+    val createAt: Long = System.currentTimeMillis(),
+    val isPinned:Boolean = false,
+    val imageUri:String?=null
 )
