@@ -18,5 +18,7 @@ interface NoteDao {
     @Query("SELECT * FROM notes ORDER BY createAt DESC")
     fun getAllNotesByDate(): Flow<List<NoteEntity>>
 
+    @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
+    suspend fun getNoteById(id: Int): NoteEntity?
 
 }

@@ -3,17 +3,15 @@ package com.example.noteapplicationcompose
 import android.content.Context
 import android.content.Intent
 import android.graphics.pdf.PdfDocument
-import androidx.compose.foundation.Image
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import coil.compose.rememberAsyncImagePainter
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,14 +25,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PushPin
@@ -59,7 +58,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,7 +67,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -77,9 +74,9 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import coil.compose.rememberAsyncImagePainter
 import com.example.noteapplicationcompose.ui.NoteEntity
 import com.example.noteapplicationcompose.ui.theme.NoteApplicationComposeTheme
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import java.io.File
 import java.util.Date
 
@@ -106,7 +103,7 @@ class MainActivity : ComponentActivity() {
 fun NotesScreen(viewModel: NoteViewModel) {
     val notes by viewModel.notes.collectAsState()
 
-    var expanded by remember { mutableStateOf(false) } // for dropdown
+    var expanded by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(Color(0xFFE0F7FA)) }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -115,13 +112,12 @@ fun NotesScreen(viewModel: NoteViewModel) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument() // 👈 instead of GetContent
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let {
             selectedImageUri = it.toString()
-
-            // 👇 Persist permission so app can access image even after restart
             try {
                 context.contentResolver.takePersistableUriPermission(
                     it,
@@ -133,66 +129,26 @@ fun NotesScreen(viewModel: NoteViewModel) {
         }
     }
 
-
     val filteredNotes = notes.filter {
         it.title.contains(searchQuery, ignoreCase = true) ||
                 it.description.contains(searchQuery, ignoreCase = true)
     }
 
-    val systemUiController = rememberSystemUiController()
-    val statusBarColor = colorResource(R.color.violet)
-    SideEffect {
-        systemUiController.setStatusBarColor(
-            color = statusBarColor,
-            darkIcons = false
-        )
-    }
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Note App", color = colorResource(R.color.white)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorResource(id = R.color.violet)
-                ),
+                title = { Text("Note App", color = Color.White) },
                 actions = {
                     IconButton(onClick = { expanded = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Sort",
-                            tint = Color.White
-                        )
+                        Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
                     }
-
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Sort by Date") },
-                            onClick = {
-                                Log.e("TAG", "NotesScreen: cdcjc" )
-                                expanded = false
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Export as Text") },
-                            onClick = {
-                                exportNotesAsText(context, notes)
-                                expanded = false
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Export as PDF") },
-                            onClick = {
-                                exportNotesAsPdf(context, notes)
-                                expanded = false
-                            }
-                        )
-
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        DropdownMenuItem(text = { Text("Sort by Date") }, onClick = { expanded = false })
+                        DropdownMenuItem(text = { Text("Export as Text") }, onClick = { exportNotesAsText(context, notes); expanded = false })
+                        DropdownMenuItem(text = { Text("Export as PDF") }, onClick = { exportNotesAsPdf(context, notes); expanded = false })
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorResource(R.color.violet))
             )
         },
         floatingActionButton = {
@@ -201,168 +157,192 @@ fun NotesScreen(viewModel: NoteViewModel) {
                     editingNoteId = null
                     title = ""
                     description = ""
+                    selectedImageUri = null
                     isDialogOpen = true
                 },
-                contentColor = Color.White,
-                containerColor = colorResource(id = R.color.violet),
-                modifier = Modifier.padding(16.dp)
+                containerColor = colorResource(R.color.violet)
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Note")
+                Icon(Icons.Default.Add, contentDescription = "Add Note", tint = Color.White)
             }
         }
-    ) { innerPadding ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)) {
-            Column(modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)) {
-
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding)) {
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 TextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search notes...") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
-                    },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                     modifier = Modifier.fillMaxWidth()
                 )
+
                 Spacer(modifier = Modifier.height(8.dp))
 
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    itemsIndexed(filteredNotes) { _, note ->
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 160.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredNotes) { note ->
                         NoteCard(
                             title = note.title,
                             description = note.description,
                             backgroundColor = Color(note.colorHex),
                             isPinned = note.isPinned,
                             createAt = note.createAt,
+                            note = note,
+                            imageUri = note.imageUri,
+                            modifier = Modifier.wrapContentHeight(),
                             onEdit = {
                                 editingNoteId = note.id
                                 title = note.title
                                 description = note.description
                                 selectedColor = Color(note.colorHex)
+                                selectedImageUri = note.imageUri
                                 isDialogOpen = true
                             },
-                            onDelete = {
-                                viewModel.deleteNote(note)
-                            },
-                            onPin = {
-                                viewModel.togglePin(note)
-                            },
-                            note = note,
-                            imageUri = note.imageUri
+                            onDelete = { viewModel.deleteNote(note) },
+                            onPin = { viewModel.togglePin(note) }
                         )
                     }
                 }
 
                 if (notes.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "No notes added", style = MaterialTheme.typography.bodyLarge)
+                        Text("No notes added", style = MaterialTheme.typography.bodyLarge)
                     }
                 } else if (filteredNotes.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "No results found", style = MaterialTheme.typography.bodyLarge)
+                        Text("No results found", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
 
+            // Add/Edit Note Dialog
             if (isDialogOpen) {
-                AlertDialog(
-                    onDismissRequest = { isDialogOpen = false },
-                    confirmButton = {
-                        Button(onClick = {
-                            if (title.isNotBlank() || description.isNotBlank()) {
-                                viewModel.upsertNote(editingNoteId, title, description, selectedColor.toArgb().toLong(), imageUri = selectedImageUri.toString())
-                                title = ""
-                                description = ""
-                                editingNoteId = null
-                                isDialogOpen = false
-
-                            }
-                        }) {
-                            Text(if (editingNoteId == null) "Add" else "Update")
-                        }
+                AddEditNoteDialog(
+                    title = title,
+                    description = description,
+                    selectedColor = selectedColor,
+                    selectedImageUri = selectedImageUri,
+                    onDismiss = { isDialogOpen = false },
+                    onSave = {
+                        viewModel.upsertNote(editingNoteId, title, description, selectedColor.toArgb().toLong(), imageUri = selectedImageUri)
+                        title = ""
+                        description = ""
+                        editingNoteId = null
+                        selectedImageUri = null
+                        isDialogOpen = false
                     },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            isDialogOpen = false
-                            editingNoteId = null
-                        }) {
-                            Text("Cancel")
-                        }
-                    },
-                    title = { Text(if (editingNoteId == null) "Add Note" else "Edit Note") },
-                    text = {
-                        Column {
-                            val colors = listOf(
-                                Color(0xFFFFCDD2), // Red
-                                Color(0xFFC8E6C9), // Green
-                                Color(0xFFFFF9C4), // Yellow
-                                Color(0xFFBBDEFB), // Blue
-                                Color(0xFFD1C4E9)  // Purple
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                colors.forEach { c ->
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(c)
-                                            .clickable { selectedColor = c }
-                                            .border(
-                                                width = if (selectedColor == c) 3.dp else 1.dp,
-                                                color = if (selectedColor == c) Color.Black else Color.Gray,
-                                                shape = CircleShape
-                                            )
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            TextField(
-                                value = title,
-                                onValueChange = { title = it },
-                                label = { Text("Title") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            TextField(
-                                value = description,
-                                onValueChange = { description = it },
-                                label = { Text("Description") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // ✅ Image picker
-                            Button(onClick = { launcher.launch(arrayOf("image/*")) }) {
-                                Text("Add Image")
-                            }
-
-
-                            // ✅ Preview selected image
-                            selectedImageUri?.let { uri ->
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Image(
-                                    painter = rememberAsyncImagePainter(Uri.parse(uri)),
-                                    contentDescription = "Selected Image",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp)
-                                        .clip(RoundedCornerShape(8.dp)),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
-                    }
+                    onColorChange = { selectedColor = it },
+                    onImagePick = { launcher.launch(arrayOf("image/*")) },
+                    onTitleChange = { title = it },
+                    onDescriptionChange = { description = it }
                 )
             }
         }
     }
+}
+
+@Composable
+fun AddEditNoteDialog(
+    title: String,
+    description: String,
+    selectedColor: Color,
+    selectedImageUri: String?,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onColorChange: (Color) -> Unit,
+    onImagePick: () -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = onSave) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        title = { Text(if (title.isBlank() && description.isBlank()) "Add Note" else "Edit Note") },
+        text = {
+            Column {
+                // Color Picker
+                val colors = listOf(
+                    Color(0xFFFFCDD2), // Red
+                    Color(0xFFC8E6C9), // Green
+                    Color(0xFFFFF9C4), // Yellow
+                    Color(0xFFBBDEFB), // Blue
+                    Color(0xFFD1C4E9)  // Purple
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    colors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .border(
+                                    width = if (selectedColor == color) 3.dp else 1.dp,
+                                    color = if (selectedColor == color) Color.Black else Color.Gray,
+                                    shape = CircleShape
+                                )
+                                .clickable { onColorChange(color) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Title TextField
+                TextField(
+                    value = title,
+                    onValueChange = onTitleChange,
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Description TextField
+                TextField(
+                    value = description,
+                    onValueChange = onDescriptionChange,
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Image picker
+                Button(onClick = onImagePick) {
+                    Text("Add Image")
+                }
+
+                // Preview image if exists
+                selectedImageUri?.let { uri ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Image(
+                        painter = rememberAsyncImagePainter(Uri.parse(uri)),
+                        contentDescription = "Selected Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+        }
+    )
 }
 
 
@@ -373,119 +353,71 @@ fun NoteCard(
     backgroundColor: Color?,
     isPinned: Boolean,
     createAt: Long,
+    note: NoteEntity,
+    imageUri: String?,
     modifier: Modifier = Modifier,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onPin: () -> Unit,
-    note: NoteEntity,
-    imageUri: String?
+    onPin: () -> Unit
 ) {
-
     val context = LocalContext.current
     val formattedDate = remember(createAt) {
         java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.getDefault())
             .format(java.util.Date(createAt))
     }
+
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 10.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = modifier.padding(4.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor ?: Color.Cyan),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = backgroundColor ?: Color.Cyan)
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    if (!title.isNullOrBlank()) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2C3E50)
-                        )
-                    }
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Title
+            if (!title.isNullOrBlank()) {
+                Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            }
 
-                    if (!title.isNullOrBlank() && !description.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
+            // Description
+            if (!description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(description, style = MaterialTheme.typography.bodySmall)
+            }
 
-                    if (!description.isNullOrBlank()) {
-                        Text(
-                            text = description,
-                            style = if (title.isNullOrBlank()) {
-                                MaterialTheme.typography.titleLarge
-                            } else {
-                                MaterialTheme.typography.bodySmall
-                            },
-                            color = Color(0xFF34495E)
-                        )
-                    }
+            // Image
+            if (!imageUri.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Image(
+                    painter = rememberAsyncImagePainter(Uri.parse(imageUri)),
+                    contentDescription = "Note Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
-                    if (!imageUri.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        androidx.compose.foundation.Image(
-                            painter = rememberAsyncImagePainter(Uri.parse(imageUri)),
-                            contentDescription = "Note Image",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Created: $formattedDate", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
 
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Created: $formattedDate",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
-                    )
-                }
-
-                Row {
-                    IconButton(onClick = onPin) {
-                        Icon(
-                            imageVector = Icons.Default.PushPin,
-                            contentDescription = "Pin",
-                            tint = if (isPinned) Color(0xFF388E3C) else Color.Gray
-                        )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = onPin) { Icon(Icons.Default.PushPin, contentDescription = "Pin", tint = if (isPinned) Color.Green else Color.Gray) }
+                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Edit") }
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
+                IconButton(onClick = {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, note.title)
+                        putExtra(Intent.EXTRA_TEXT, "From Note App: ${note.title}\n\n${note.description}")
                     }
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            tint = Color(0xFF1976D2)
-                        )
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = Color(0xFFD32F2F)
-                        )
-                    }
-
-                    IconButton(onClick = {
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_SUBJECT, note.title)
-                            putExtra(Intent.EXTRA_TEXT, "From Note Application ${note.title}\n\n${note.description}")
-                        }
-                        context.startActivity(Intent.createChooser(shareIntent, "Share note via"))
-                    }) {
-                        Icon(imageVector = Icons.Default.Share, contentDescription = "Share")
-                    }
-
-                }
+                    context.startActivity(Intent.createChooser(shareIntent, "Share note via"))
+                }) { Icon(Icons.Default.Share, contentDescription = "Share") }
             }
         }
     }
 }
+
 
 fun exportNotesAsText(context: Context, notes: List<NoteEntity>) {
     try {

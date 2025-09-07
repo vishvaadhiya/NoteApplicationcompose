@@ -22,23 +22,35 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
 
 
     fun upsertNote(
-        id: Int? = null,
+        id: Int?,
         title: String,
         description: String,
-        colorHex: Long,
-        isPinned: Boolean = false,
+        color: Long,
+        createdAt: Long? = null,
         imageUri: String? = null
     ) {
         viewModelScope.launch {
-            val note = NoteEntity(
-                id = id ?: 0,
-                title = title,
-                description = description,
-                colorHex = colorHex,
-                isPinned = isPinned,
-                createAt = System.currentTimeMillis(),
-                imageUri = imageUri  // 👈 persist image uri
-            )
+            val note = if (id != null) {
+                // Editing → preserve existing fields
+                val existingNote = noteDao.getNoteById(id)  // <-- Add this function in DAO
+                NoteEntity(
+                    id = id,
+                    title = title,
+                    description = description,
+                    colorHex = color,
+                    createAt = createdAt ?: existingNote?.createAt ?: System.currentTimeMillis(),
+                    isPinned = existingNote?.isPinned ?: false,
+                    imageUri = imageUri ?: existingNote?.imageUri
+                )
+            } else {
+                // Adding new → always use current time
+                NoteEntity(
+                    title = title,
+                    description = description,
+                    colorHex = color,
+                    imageUri = imageUri
+                )
+            }
             noteDao.insert(note)
         }
     }
