@@ -140,15 +140,23 @@ fun NotesScreen(viewModel: NoteViewModel) {
                 title = { Text("Note App", color = Color.White) },
                 actions = {
                     IconButton(onClick = { expanded = true }) {
-                        Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color.White
+                        )
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        DropdownMenuItem(text = { Text("Sort by Date") }, onClick = { expanded = false })
-                        DropdownMenuItem(text = { Text("Export as Text") }, onClick = { exportNotesAsText(context, notes); expanded = false })
-                        DropdownMenuItem(text = { Text("Export as PDF") }, onClick = { exportNotesAsPdf(context, notes); expanded = false })
+//                        DropdownMenuItem(text = { Text("Sort by Date") }, onClick = { expanded = false })
+                        DropdownMenuItem(
+                            text = { Text("Export as Text") },
+                            onClick = { exportNotesAsText(context, notes); expanded = false })
+                        DropdownMenuItem(
+                            text = { Text("Export as PDF") },
+                            onClick = { exportNotesAsPdf(context, notes); expanded = false })
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorResource(R.color.violet))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorResource(R.color.ic_launcher_background))
             )
         },
         floatingActionButton = {
@@ -160,14 +168,18 @@ fun NotesScreen(viewModel: NoteViewModel) {
                     selectedImageUri = null
                     isDialogOpen = true
                 },
-                containerColor = colorResource(R.color.violet)
+                containerColor = colorResource(R.color.ic_launcher_background)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Note", tint = Color.White)
             }
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
                 TextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -228,7 +240,13 @@ fun NotesScreen(viewModel: NoteViewModel) {
                     selectedImageUri = selectedImageUri,
                     onDismiss = { isDialogOpen = false },
                     onSave = {
-                        viewModel.upsertNote(editingNoteId, title, description, selectedColor.toArgb().toLong(), imageUri = selectedImageUri)
+                        viewModel.upsertNote(
+                            editingNoteId,
+                            title,
+                            description,
+                            selectedColor.toArgb().toLong(),
+                            imageUri = selectedImageUri
+                        )
                         title = ""
                         description = ""
                         editingNoteId = null
@@ -373,10 +391,31 @@ fun NoteCard(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Title
-            if (!title.isNullOrBlank()) {
-                Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+
+                if (!title.isNullOrBlank()) {
+                    Text(
+                        title,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                        // Note: No .align() modifier is needed here.
+                    )
+                }
+
+                IconButton(
+                    onClick = onPin,
+                ) {
+                    Icon(
+                        Icons.Default.PushPin,
+                        contentDescription = "Pin",
+                        tint = if (isPinned) Color.Green else Color.Gray
+                    )
+                }
             }
+
 
             // Description
             if (!description.isNullOrBlank()) {
@@ -399,20 +438,47 @@ fun NoteCard(
             }
 
             Spacer(modifier = Modifier.height(4.dp))
-            Text("Created: $formattedDate", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            Text(
+                "Created: $formattedDate",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray
+            )
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                IconButton(onClick = onPin) { Icon(Icons.Default.PushPin, contentDescription = "Pin", tint = if (isPinned) Color.Green else Color.Gray) }
-                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Edit") }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .align(Alignment.End),
+            ) {
+
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit"
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                    )
+                }
                 IconButton(onClick = {
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
                         putExtra(Intent.EXTRA_SUBJECT, note.title)
-                        putExtra(Intent.EXTRA_TEXT, "From Note App: ${note.title}\n\n${note.description}")
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            "From Note App: ${note.title}\n\n${note.description}"
+                        )
                     }
                     context.startActivity(Intent.createChooser(shareIntent, "Share note via"))
-                }) { Icon(Icons.Default.Share, contentDescription = "Share") }
+                }) {
+                    Icon(
+                        Icons.Default.Share,
+                        contentDescription = "Share"
+                    )
+                }
             }
         }
     }
@@ -448,7 +514,6 @@ fun exportNotesAsText(context: Context, notes: List<NoteEntity>) {
         Toast.makeText(context, "Failed to export text", Toast.LENGTH_SHORT).show()
     }
 }
-
 
 
 fun exportNotesAsPdf(context: Context, notes: List<NoteEntity>) {
@@ -494,6 +559,4 @@ fun exportNotesAsPdf(context: Context, notes: List<NoteEntity>) {
 }
 
 
-
-
-enum class SortType { DATE}
+enum class SortType { DATE }
